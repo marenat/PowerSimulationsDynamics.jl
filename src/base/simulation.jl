@@ -232,14 +232,14 @@ end
 
 function _initialize_state_space(sim::Simulation{T}) where {T <: SimulationModel}
     simulation_inputs = get_simulation_inputs(sim)
-    x0_init = sim.x0_init
+    x0_init = get_initial_conditions(sim)
     if isempty(x0_init) && sim.initialized
         @warn "Initial Conditions set to flat start"
-        sim.x0_init = _get_flat_start(simulation_inputs)
+        get_initial_conditions(sim) = _get_flat_start(simulation_inputs)
     elseif isempty(x0_init) && !sim.initialized
-        sim.x0_init = _get_flat_start(simulation_inputs)
+        get_initial_conditions(sim) = _get_flat_start(simulation_inputs)
     elseif !isempty(x0_init) && sim.initialized
-        if length(sim.x0_init) != get_variable_count(simulation_inputs)
+        if length(get_initial_conditions(sim)) != get_variable_count(simulation_inputs)
             throw(
                 IS.ConflictingInputsError(
                     "The size of the provided initial state space does not match the model's state space.",
@@ -248,8 +248,8 @@ function _initialize_state_space(sim::Simulation{T}) where {T <: SimulationModel
         end
     elseif !isempty(x0_init) && !sim.initialized
         @warn "initial_conditions were provided with initialize_simulation. User's initial_conditions will be overwritten."
-        if length(sim.x0_init) != get_variable_count(simulation_inputs)
-            sim.x0_init = _get_flat_start(simulation_inputs)
+        if length(get_initial_conditions(sim)) != get_variable_count(simulation_inputs)
+            get_initial_conditions(sim) = _get_flat_start(simulation_inputs)
         end
     else
         @assert false
@@ -261,7 +261,7 @@ function _pre_initialize_simulation!(sim::Simulation)
     _initialize_state_space(sim)
     if sim.initialized != true
         @info("Pre-Initializing Simulation States")
-        sim.initialized = precalculate_initial_conditions!(sim.x0_init, sim)
+        sim.initialized = precalculate_initial_conditions!(get_initial_conditions(sim), sim)
         if !sim.initialized
             error(
                 "The simulation failed to find an adequate initial guess for the initialization. Check the intialization routine.",
@@ -346,7 +346,7 @@ function _get_diffeq_problem(
             # Necessary to avoid unnecessary calculations in Rosenbrock methods
             tgrad = (dT, u, p, t) -> dT .= false,
         ),
-        sim.x0_init,
+        get_initial_conditions(sim),
         get_tspan(sim),
         simulation_inputs,
     )

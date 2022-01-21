@@ -176,7 +176,7 @@ end
         initialize_simulation = false,
         initial_conditions = x0_test,
     )
-    @test LinearAlgebra.norm(sim.x0_init - x0_test) <= 1e-6
+    @test LinearAlgebra.norm(PSID.get_initial_conditions(sim) - x0_test) <= 1e-6
     #Initialize System normally
     sim_normal = Simulation(
         ResidualModel,
